@@ -1,0 +1,229 @@
+---
+title: "Super tableau de bord"
+editor: source
+author: moi-même
+format: 
+  dashboard:
+    scrolling: true
+execute:
+  echo: false
+server: shiny
+---
+
+```{r}
+#| context: setup
+library(readr)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(sf)
+library(lubridate)
+library(glue)
+library(ggplot2)
+library(plotly)
+library(forcats)
+library(leaflet)
+library(shiny)
+library(shinydashboard)
+source("fonctions/import_donnees.R")
+
+urls_donnees <- creer_liste_donnees("sources.yml")
+donnees_aeroports <- importer_donnees_aeroports(unlist(urls_donnees$airports))
+```
+
+# {.sidebar}
+
+![](img/cockpit.png){width="80%"}
+
+
+
+```{r}
+liste_annees = donnees_aeroports |> 
+  distinct(annee) |> 
+  pull()
+
+selectInput('annee', 'Année :', liste_annees, selected = 2018) 
+
+liste_aeroports = donnees_aeroports |> 
+  distinct(nom_aeroport) |> 
+  pull()
+
+selectInput('choix_aeroport', 
+            'Aéroport choisi :', 
+            liste_aeroports, 
+            selected = liste_aeroports[1]) 
+
+```
+
+
+# Vue d'ensemble
+
+## Row {height="20%"}
+```{r}
+valueBoxOutput("vbox_depart")
+```
+
+```{r}
+valueBoxOutput("vbox_arrivee")
+```
+
+```{r}
+valueBoxOutput("vbox_transit")
+```
+
+## Row {height="80%"}
+```{r}
+plotOutput('plot')
+```
+
+
+
+# Détails
+
+
+
+## Row {height="20%"}
+```{r}
+valueBoxOutput("vbox_aero")
+```
+
+
+## Row {height="80%"}
+```{r}
+plotOutput("plot_aero")
+```
+
+
+
+
+```{r}
+#| context: server
+
+donnees_filtrees <- reactive({
+  donnees_aeroports |>
+    filter(annee == input$annee)
+})
+
+stat_passagers <- reactive({
+  donnees_filtrees() |>
+    summarise(paxdep = sum(apt_pax_dep, na.rm = TRUE),
+              paxarr = sum(apt_pax_arr, na.rm = TRUE),
+              paxtra = sum(apt_pax_tr, na.rm = TRUE))
+  })
+
+n_passagers_depart <- reactive({
+  stat_passagers() |>
+    pull(paxdep) |> 
+    format(scientific = FALSE, big.mark = " ")
+  })
+
+output$vbox_depart <- renderValueBox({
+    valueBox(
+      "Départs",
+      n_passagers_depart(),
+      icon = icon("credit-card")
+    )
+  })
+
+n_passagers_arrivee <- reactive({
+  stat_passagers() |>
+    pull(paxarr) |> 
+    format(scientific = FALSE, big.mark = " ")
+})
+
+output$vbox_arrivee <- renderValueBox({
+    valueBox(
+      "Arrivées",
+      n_passagers_arrivee(),
+      icon = icon("credit-card")
+    )
+  })
+
+n_passagers_transit <- reactive({
+  stat_passagers() |>
+    pull(paxtra) |> 
+    format(scientific = FALSE, big.mark = " ")
+  })
+
+output$vbox_transit <- renderValueBox({
+    valueBox(
+      "Transit",
+      n_passagers_transit(),
+      icon = icon("arrow-repeat")
+    )
+  })
+
+n_passagers_aero <- reactive({
+  donnees_filtrees() |> 
+    filter(nom_aeroport == input$choix_aeroport) |> 
+    summarise(n_pax = sum(apt_pax_dep, na.rm = TRUE)) |>
+    pull(n_pax) |> 
+    format(scientific = FALSE, big.mark = " ")
+})
+
+
+output$vbox_aero <- renderValueBox({
+    valueBox(
+      "Nombre total de passagers",
+      n_passagers_aero(),
+      icon = icon("credit-card")
+    )
+  })
+
+
+calcul_donnees_annuelles_aeroports <- function(choix_annee){
+  
+  donnees_aeroports |> 
+    filter(annee == choix_annee) |> 
+    group_by(apt, apt_nom) |> 
+    summarise(
+      paxdep = round(sum(apt_pax_dep, na.rm = TRUE), 3),
+      paxarr = round(sum(apt_pax_arr, na.rm = TRUE), 3),
+      paxtra = round(sum(apt_pax_tr, na.rm = TRUE), 3)) |> 
+    arrange(desc(paxdep)) |> 
+    ungroup()
+}
+
+plot_aeroports_top10 <- function(choix_annee){
+  
+  calcul_donnees_annuelles_aeroports(choix_annee) |> 
+    slice_max(paxdep, n = 10) |> 
+    mutate(apt_nom = fct_reorder(apt_nom, paxdep)) |> 
+    ggplot(aes(x = apt_nom, y = paxdep)) + 
+    geom_col() + 
+    coord_flip() +
+    labs(title = choix_annee)
+
+  }
+
+output$plot <- renderPlot({
+  
+  plot_aeroports_top10(input$annee)
+  
+})
+
+
+
+plot_aeroport <- function(choix_aeroport){
+  
+  df <- donnees_aeroports |> 
+    filter(nom_aeroport == choix_aeroport)
+  
+  nom_aeroport <- df |> distinct(apt_nom) |> pull()
+  
+  df |> 
+    mutate(trafic = apt_pax_dep + apt_pax_tr + apt_pax_arr,
+           date = ymd(glue("{anmois}01"))) |> 
+    ggplot(aes(x = date, y = trafic)) + 
+    geom_line() + 
+    geom_point() +
+    labs(title = nom_aeroport)
+  
+}
+
+output$plot_aero <- renderPlot({
+  
+  plot_aeroport(input$choix_aeroport)
+  
+})
+```
