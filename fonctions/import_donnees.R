@@ -41,7 +41,9 @@ importer_donnees_aeroports <- function(urls_aeroports){
               APT_NOM = col_character(),
               APT_ZON = col_character(),
               .default = col_double())) |> 
-    nettoyer_donnees()
+    nettoyer_donnees() |> 
+    mutate(apt_nom = str_to_title(apt_nom),
+           nom_aeroport = glue("{apt_nom} - {apt}")) 
      
 }
 
