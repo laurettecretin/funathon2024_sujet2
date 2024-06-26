@@ -10,6 +10,7 @@ library(plotly)
 library(gt)
 library(forcats)
 library(leaflet)
+library(janitor)
 
 source("fonctions/import_donnees.R")
 source("fonctions/calcul_stat.R")
@@ -22,6 +23,72 @@ donnees_aeroports <- importer_donnees_aeroports(unlist(urls_donnees$airports))
 donnees_compagnies <- importer_donnees_compagnies(unlist(urls_donnees$compagnies))
 donnees_liaisons <- importer_donnees_liaisons(unlist(urls_donnees$liaisons))
 
+t1 <- donnees_liaisons |> 
+  filter(annee == 2018) |> 
+  mutate(liaison = recode_factor(lsn_fsc,
+                                 !!!c("MET_RAD" = "dont radiales",
+                                      "MET_TRA" = "dont transversales",
+                                      "MET_OM" = "Métropole - Outre-Mer",
+                                      "OM_OM" = "Outre-mer - Intérieur",
+                                      "MET_INTL" = "Métropole - International",
+                                      "OM_INTL" = "Outre-mer - International"))) |> 
+  group_by(liaison) |> 
+  summarise(paxloc = sum(lsn_pax_loc, na.rm = TRUE))
+
+ 
+t2 <- donnees_liaisons |> 
+  filter(annee == 2018) |> 
+  mutate(liaison = recode_factor(lsn_fsc,
+                                 !!!c("MET_RAD" = "Métropole Intérieur",
+                                      "MET_TRA" = "Métropole Intérieur",
+                                      "MET_OM" = "Métropole - Outre-Mer",
+                                      "OM_OM" = "Outre-mer - Intérieur",
+                                      "MET_INTL" = "Trafic international",
+                                      "OM_INTL" = "Trafic international"))) |> 
+  group_by(liaison) |> 
+  summarise(paxloc = sum(lsn_pax_loc, na.rm = TRUE))
+
+t3 <- donnees_liaisons |> 
+  filter(annee == 2018) |> 
+  mutate(liaison = recode_factor(lsn_fsc,
+                                 !!!c("MET_RAD" = "Trafic intérieur",
+                                      "MET_TRA" = "Trafic intérieur",
+                                      "MET_OM" = "Trafic intérieur",
+                                      "OM_OM" = "Trafic intérieur",
+                                      "MET_INTL" = "Trafic international",
+                                      "OM_INTL" = "Trafic international"))) |> 
+  group_by(liaison) |> 
+  summarise(paxloc = sum(lsn_pax_loc, na.rm = TRUE))
+
+bind_rows(t3, t1, t2) |> 
+  mutate(liaison = fct_relevel(liaison,
+                               "Trafic intérieur",
+                               "Métropole Intérieur",
+                               "dont radiales",
+                               "dont transversales",
+                               "Métropole - Outre-Mer",
+                               "Outre-mer - Intérieur",
+                               "Trafic international",
+                               "Outre-mer - International")) |> 
+  distinct() |> 
+  arrange(liaison) |> 
+  adorn_totals() |> 
+  mutate(paxloc = format(paxloc, scientific = FALSE, big.mark = " ")) |> 
+  gt() |> 
+  tab_style(style = list(cell_fill(color = "cadetblue"), cell_text(weight = "bold")),
+            locations = cells_body(rows = 10)) |>
+  tab_style(style = list(cell_fill(color = "powderblue"), cell_text(weight = "bold")),
+            locations = cells_body(rows = c(1, 7))) |> 
+  tab_style(style = cell_fill(color = "lightcyan"),
+            locations = cells_body(rows = c(2, 5, 6))  ) |> 
+  tab_style(style = cell_text(style = "italic"),
+            locations = cells_body(rows = c(3, 4))  ) |> 
+  tab_header(title = md("**Trafic des principales liaisons**")) |> 
+  cols_label(liaison = md("**Trafic**"),
+             paxloc = md("**Nombre de passagers**"))
+
+
+donnees_liaisons |> filter(str_detect(lsn_dep_nom, "MAYOTTE"))
 
 # localisation des aéroports
 localisation_aeroports <- st_read(urls_donnees$geojson$airport)
