@@ -19,7 +19,7 @@ plot_aeroports_top10 <- function(df, choix_annee){
     slice_max(paxdep, n = 10) |> 
     mutate(apt_nom = fct_reorder(apt_nom, paxdep)) |> 
     ggplot(aes(x = apt_nom, y = paxdep)) + 
-    geom_col() + 
+    geom_col(fill = "powderblue") + 
     coord_flip() +
     scale_y_continuous(labels = function(x) format(x, scientific = FALSE, big.mark = " ")) +
     theme_minimal() + 
@@ -44,9 +44,9 @@ plot_aeroport <- function(df, choix_aeroport){
     geom_area_pattern(pattern = "gradient", 
                       fill = "#00000000",
                       pattern_fill  = "#00000000",
-                      pattern_fill2 = "#69b3a2") +
-    geom_line(color="#69b3a2", size=2) +
-    geom_point(size=3, color="#69b3a2") +
+                      pattern_fill2 = "powderblue") +
+    geom_line(color="powderblue", size=2) +
+    geom_point(shape = 21, size=3, color="powderblue", fill = "white") +
     scale_x_continuous(breaks = 2018:2022) + 
     scale_y_continuous(labels = function(x) format(x, scientific = FALSE, big.mark = " ")) +
     theme_minimal() +
