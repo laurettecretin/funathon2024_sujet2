@@ -5,6 +5,7 @@ author: moi-même
 format: 
   dashboard:
     scrolling: true
+    theme: sketchy
 execute:
   echo: false
 server: shiny
@@ -56,7 +57,7 @@ selectInput('annee', 'Année :', liste_annees, selected = 2018)
 ```
 
 
-# Vue d'ensemble
+# Trafic aérien
 
 ## Row {height="10%"}
 ```{r}
@@ -89,7 +90,7 @@ leafletOutput("carte")
 
 
 
-# Détails
+# Détails par aéroport
 
 ## {.toolbar} {height="10%"}
 
@@ -159,7 +160,8 @@ output$vbox_depart <- renderValueBox({
     valueBox(
       "Départs",
       n_passagers_depart(),
-      icon = icon("credit-card")
+      icon = icon("credit-card"),
+      color = "olive"
     )
   })
 
