@@ -5,7 +5,7 @@ author: moi-même
 format: 
   dashboard:
     scrolling: true
-    theme: sketchy
+    theme: yeti
 execute:
   echo: false
 server: shiny
@@ -85,6 +85,7 @@ gt_output('tableau')
 
 ## Row {height="45%"}
 ```{r}
+#| padding: 0px
 leafletOutput("carte")
 ```
 
@@ -160,7 +161,7 @@ output$vbox_depart <- renderValueBox({
     valueBox(
       "Départs",
       n_passagers_depart(),
-      icon = icon("credit-card"),
+      icon = icon("plane-departure"),
       color = "olive"
     )
   })
@@ -175,7 +176,7 @@ output$vbox_arrivee <- renderValueBox({
     valueBox(
       "Arrivées",
       n_passagers_arrivee(),
-      icon = icon("credit-card")
+      icon = icon("plane-arrival")
     )
   })
 
@@ -189,7 +190,7 @@ output$vbox_transit <- renderValueBox({
     valueBox(
       "Transit",
       n_passagers_transit(),
-      icon = icon("arrow-repeat")
+      icon = icon("plane")
     )
   })
 
@@ -215,7 +216,7 @@ output$vbox_depart_detail <- renderValueBox({
     valueBox(
       "Départs",
       n_passagers_depart_detail(),
-      icon = icon("credit-card")
+      icon = icon("plane-departure")
     )
   })
 
@@ -229,7 +230,7 @@ output$vbox_arrivee_detail <- renderValueBox({
     valueBox(
       "Arrivées",
       n_passagers_arrivee_detail(),
-      icon = icon("credit-card")
+      icon = icon("plane-arrival")
     )
   })
 
@@ -243,7 +244,7 @@ output$vbox_transit_detail <- renderValueBox({
     valueBox(
       "Transit",
       n_passagers_transit_detail(),
-      icon = icon("arrow-repeat")
+      icon = icon("plane")
     )
   })
 
